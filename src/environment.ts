@@ -4,3 +4,4 @@ export const environment = process.env as {
     DB_HOST: string
     DB_PORT?: string
 }
+

@@ -1,0 +1,93 @@
+.grid-item {
+    position: relative;
+    padding: 2px;
+    word-break: break-word;
+    padding: 8px 4px 4px 4px;
+}
+
+.grid-item.even:not(.highlight-error) {
+    background-color: #adff2fa3
+}
+
+.grid-item.highlight-error {
+    background-color: #f9531ae6
+}
+
+.grid-table-item {
+    border: 2px solid black;
+}
+
+.grid-table-item .grid-container {
+    display: grid;
+    gap: 0px 4px;
+    grid-template-columns: min-content minmax(0, 1fr);
+}
+
+.grid-table-item .grid-container .grid-item.key {
+    word-break: keep-all;
+}
+
+.grid-table-item .grid-container .grid-item.key .key-element {
+    text-align: center;
+    margin: 0px 4px;
+}
+
+.text-container {
+    text-align: center;
+    line-height: 2em;
+    height: 2em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.grid-item .hover-container {
+    position: absolute;
+    right: 2px;
+    top: -2px;
+    display: flex;
+    flex-direction: row-reverse;
+    gap: 4px;
+    padding-right: 4px;
+}
+
+.grid-item .hover-container .extended-menu-container {
+    position: absolute;
+    background-color: white;
+    z-index: 200;
+}
+
+.grid-item .hover-container .extended-menu-container .uniqueitem {
+    min-width: 200px;
+    position: relative;
+    margin: 4px 0px;
+}
+
+.grid-item .hover-container .extended-menu-container .uniqueitem .subelement {
+    position: absolute;
+    top: 0px;
+    bottom: 0px;
+    cursor: pointer !important;
+}
+
+.grid-item .hover-container .extended-menu-container .uniqueitem .eq {
+    left: 0px;
+    right: 52%;
+    background-color: rgba(172, 255, 47, 0.479);
+}
+
+.grid-item .hover-container .extended-menu-container .uniqueitem .eqn {
+    left: 52%;
+    right: 0px;
+    background-color: rgba(255, 200, 47, 0.685);
+}
+
+.filterselect {
+    background-color: white;
+    position: absolute;
+    z-index: 9;
+}
+
+.filterselect>* {
+    cursor: pointer;
+}

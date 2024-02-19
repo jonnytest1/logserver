@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+
+    <head>
+        <title>Logging</title>
+        <link rel="stylesheet"
+              type="text/css"
+              href="index.css">
+        <script src="indexgrid.js"
+                type="module"></script>
+        <meta charset="UTF-8">
+    </head>
+
+    <body>
+        <span>
+            <input class="customfilter">
+            <div class="filterselect"></div>
+            <select class="filtertype">
+                <option>contains</option>
+                <option>equals</option>
+                <option>greater</option>
+                <option>smaller</option>
+            </select>
+            <input class="valueadd">
+            <button id="filteradd">add</button>
+        </span>
+
+        <div id="filters"></div>
+        <div id="columns"></div>
+
+        <div id="logcontainer"
+             style="display: grid;grid-gap: 1px">
+        </div>
+
+        <button id="load-more-button">load more</button>
+    </body>
+
+</html>

@@ -1,4 +1,4 @@
-import type { Pool } from 'mariadb';
+import type { Connection, Pool } from 'mariadb';
 import moment = require('moment');
 
 export type TableNames = {
@@ -7,7 +7,7 @@ export type TableNames = {
 }
 
 type PoolExtension = {
-    queryReplaced(tables: TableNames, sql: string, values?: any)
+    queryReplaced<T>(tables: TableNames, sql: string, values?: any): Promise<T>
 }
 export type ExtendedPool = Pool & PoolExtension
 
@@ -25,25 +25,39 @@ export function getTableNames(minusDays: number): TableNames {
     }
 }
 
-export function extendPool(pool: Pool & Partial<PoolExtension>): asserts pool is ExtendedPool {
-    pool.queryReplaced = function (tables: TableNames, sql: string, values) {
-        return pool.query(sql.replace(/LOG_TABLE/g, `\`${tables.log}\``)
+export function extendWithReplacement<T extends Pool | Connection>(pool: T & Partial<PoolExtension>): asserts pool is T & PoolExtension {
+    pool.queryReplaced = function <T>(tables: TableNames, sql: string, values) {
+        return pool.query<T>(sql.replace(/LOG_TABLE/g, `\`${tables.log}\``)
             .replace(/LOG_ATTRIBUTES_TABLE/g, `\`${tables.logAttr}\``), values)
     }
 }
 
+export function generateForDays<T>(searchPastNDays, generator: ((name: TableNames, index: number) => Promise<T>)) {
+    return new Array(searchPastNDays).fill(null).map((_, i) => {
+        const dateStr = getTableNames(i)
 
+        return generator(dateStr, i)
+    })
+}
+
+/**
+ * ALTER ALGORITHM = UNDEFINED 
+ * DEFINER=`root`@`%` 
+ * SQL SECURITY DEFINER VIEW `log_tables` AS 
+ *      select `information_schema`.`TABLES`.`TABLE_NAME` AS `TABLE_NAME`,`information_schema`.`TABLES`.`TABLE_COMMENT` AS `TABLE_COMMENT` 
+ *      from `information_schema`.`TABLES` 
+ *      where `information_schema`.`TABLES`.`TABLE_SCHEMA` = 'tpscript' ;
+ */
 
 export async function ensureTables(pool: ExtendedPool, postfix: TableNames) {
-    const tables = await pool.query<Array<[string]>>({
-        sql: "SHOW TABLES",
-        rowsAsArray: true,
-    })
+    const tables = await pool.query<Array<{
+        TABLE_NAME: string,
+        TABLE_COMMENT: string
+    }>>("SELECT * FROM log_tables WHERE TABLE_NAME in (?,?)", [postfix.log, postfix.logAttr])
 
-    const tableSet = new Set(tables.map(r => r[0]))
+    const tableSet = Object.fromEntries(tables.map(tabel => [tabel.TABLE_NAME, tabel.TABLE_COMMENT]))
 
-
-    if (!tableSet.has(postfix.log)) {
+    if (tableSet[postfix.log] === undefined) {
         debugger
         await pool.queryReplaced(postfix, `
             CREATE TABLE LOG_TABLE (
@@ -62,23 +76,29 @@ export async function ensureTables(pool: ExtendedPool, postfix: TableNames) {
             ENGINE=InnoDB
             ;
         `)
+    }
+    if (tableSet[postfix.log] !== "created PROCEDURE") {
+        const connection = await pool.getConnection()
+        try {
+            extendWithReplacement(connection)
+            await connection.query("DROP PROCEDURE IF EXISTS insert_return_log")
+            await connection.queryReplaced(postfix, `
+CREATE PROCEDURE insert_return_log (ts DATETIME,severity TINYTEXT,app TINYTEXT,message MEDIUMTEXT,ip TINYTEXT)
+    BEGIN
+        INSERT INTO \`tpscript\`.LOG_TABLE (\`timestamp\`, \`severity\`, \`application\`, \`message\`,\`ip\`) VALUES (ts, severity, app, message, ip);
+        SELECT LASTVAL(\`log_index_sequence\`);
+    END
+`)
+            await pool.queryReplaced(postfix, "ALTER TABLE `tpscript`.LOG_TABLE COMMENT = 'created PROCEDURE'; ")
 
-        await pool.queryReplaced(postfix, `
-            DROP PROCEDURE IF EXISTS insert_return_log;
-            DELIMITER //
-            CREATE PROCEDURE insert_return_log (ts DATETIME,severity TINYTEXT,app TINYTEXT,message MEDIUMTEXT,ip TINYTEXT)
-                    BEGIN
-                        INSERT INTO \`tpscript\`.LOG_TABLE (\`timestamp\`, \`severity\`, \`application\`, \`message\`,\`ip\`)
-                            VALUES (ts, severity, app, message,ip);
-                        SELECT LASTVAL(\`log_index_sequence\`);
-                    END;
-            //
-            DELIMITER ;
-        `)
+        } finally {
+            connection.end()
+        }
 
     }
 
-    if (!tableSet.has(postfix.logAttr)) {
+
+    if (tableSet[postfix.logAttr] === undefined) {
         debugger
         await pool.queryReplaced(postfix, `
         CREATE TABLE LOG_ATTRIBUTES_TABLE (
