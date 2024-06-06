@@ -296,6 +296,10 @@ function registerSubTable(element, tableEntry) {
                     const textElement = parseText(valEntry, true);
                     textElement.classList.add('value-element');
                     textElement.style.textAlign = 'center';
+                    if(valEntry.key.toLowerCase().includes("stack")) {
+
+                        textElement.style.textAlign = 'start';
+                    }
                     valueEl.style.borderLeft = '1px solid black';
                     valueEl.appendChild(textElement);
                     valueEl.onclick = e => e.stopPropagation();

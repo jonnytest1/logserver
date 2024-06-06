@@ -1,8 +1,10 @@
 .grid-item {
     position: relative;
-    padding: 2px;
     word-break: break-word;
     padding: 8px 4px 4px 4px;
+    white-space: pre;
+    display: flex;
+    justify-content: center;
 }
 
 .grid-item.even:not(.highlight-error) {
