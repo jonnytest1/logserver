@@ -5,6 +5,8 @@ export type LogData = {
     Severity: string
     message: string
     application: string
+
+    chunk?: string
 }
 
 export type LogAttribute = {
