@@ -34,18 +34,21 @@ async function insertIntoTable<T extends Partial<LogData>>(pool: ExtendedPool, o
     let attrSql = 'INSERT INTO LOG_ATTRIBUTES_TABLE (log_id,`key`,`value`) VALUES '
     const params: Array<number | string> = []
 
-    attrSql += Object.keys(obj).map(key => {
-        params.push(logId)
-        params.push(key)
-        if (obj[key] instanceof Array) {
-            params.push(JSON.stringify(obj[key]))
-        } else {
-            params.push(obj[key])
-        }
+    const remainingKeys = Object.keys(obj);
+    if (remainingKeys.length) {
+        attrSql += remainingKeys.map(key => {
+            params.push(logId)
+            params.push(key)
+            if (obj[key] instanceof Array) {
+                params.push(JSON.stringify(obj[key]))
+            } else {
+                params.push(obj[key])
+            }
 
-        return " (? , ? , ?) "
-    }).join(",")
-    await pool.queryReplaced(postfix, attrSql, params)
+            return " (? , ? , ?) "
+        }).join(",")
+        await pool.queryReplaced(postfix, attrSql, params)
+    }
     return logId
 }
 
@@ -55,7 +58,7 @@ export async function insert(url: URL, req: IncomingMessage, res: ServerResponse
         req.on("data", (chunk: Uint8Array) => {
             body.push(chunk)
         })
-        req.on("end", async chunk => {
+        req.on("end", async ev => {
             try {
                 const requestData = Buffer.concat(body).toString("utf8")
                 const b64Decoded = Buffer.from(requestData, "base64").toString()
