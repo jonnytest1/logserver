@@ -6,6 +6,7 @@ import { sortByVal } from '../util/sort'
 import { convertToMariaDBDateTime, convertToMariaDBInstant } from '../util/maria-ts'
 import { NoDataError, NoTableError } from '../util/no-data-error'
 import { flatMapFulfilled } from '../util/flat-map-fulfilled'
+import { jsonStringify } from '../util/json-stringify'
 
 type Headers = {
 
@@ -127,6 +128,7 @@ export async function getLogs(url: URL, req: IncomingMessage, res: ServerRespons
                 for (const log of result) {
                     attributeParams.push(log.index)
                     resultMap[log.index] = log
+                    log.chunk = keys.log
                 }
 
 
@@ -161,12 +163,7 @@ export async function getLogs(url: URL, req: IncomingMessage, res: ServerRespons
                 .sort(sortByVal(o => +o.timestamp))
 
         }
-        res.write(JSON.stringify(logList, (k, v) => {
-            if (typeof v == "bigint") {
-                return Number(v)
-            }
-            return v
-        }))
+        res.write(jsonStringify(logList))
         res.end()
     })
 }
