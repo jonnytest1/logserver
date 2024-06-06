@@ -5,6 +5,9 @@ import { distinctAttribute } from './routes/distinct-attribute';
 import { ResponseCodeError } from './util/response-code-error';
 import { resolve, extname, join } from "path"
 import { createReadStream, readFileSync, statSync } from 'fs';
+import { watchedVideos } from './routes/watched-videos';
+import { grafanaJsonConnection, grafanaMetricOpts, grafanaMetrics, grafanaQuery } from './routes/grafanajson';
+import { uploadKeys } from './routes/upload-keys';
 const searchPastNDays = 7
 
 const pathsFunctions: Record<string, (url: URL, req: IncomingMessage, res: ServerResponse) => (void | Promise<void>)> = {
@@ -17,7 +20,13 @@ const pathsFunctions: Record<string, (url: URL, req: IncomingMessage, res: Serve
     "/logs.php": getLogs,
     "/unique-attribute": distinctAttribute,
     "/insert": insert,
-    "/index.php": insert
+    "/index.php": insert,
+    "/watched_vid.php": watchedVideos,
+    "/grafana": grafanaJsonConnection,
+    "/grafana/metrics": grafanaMetrics,
+    "/grafana/query": grafanaQuery,
+    "/grafana/metric-payload-options": grafanaMetricOpts,
+    "/upload_keys.php": uploadKeys
 }
 
 const staticFiles = join(__dirname, "static")
@@ -74,7 +83,6 @@ createServer(async (req, res) => {
                             return
                         }
                     }
-
                 }
 
 
@@ -91,6 +99,7 @@ createServer(async (req, res) => {
             if (e instanceof ResponseCodeError) {
                 res.writeHead(e.status)
                 res.write(e.message);
+                res.end()
                 return
             }
 
