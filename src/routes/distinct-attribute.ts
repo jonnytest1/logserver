@@ -1,6 +1,7 @@
 import { withPool } from '../database'
 import { extendWithReplacement, generateForDays } from '../table-schema'
 import { flatMapFulfilled } from '../util/flat-map-fulfilled'
+import { NoTableError } from '../util/no-data-error'
 
 export async function distinctAttribute(url, req, res) {
     const headers = req.headers as {
@@ -30,6 +31,13 @@ export async function distinctAttribute(url, req, res) {
             try {
                 const results = await connection.queryReplaced<Array<Record<string, string>>>(dateStr, sql, params)
                 return results.map(el => el[Object.keys(el)[0]])
+            } catch (e) {
+                if (e.code === 'ER_NO_SUCH_TABLE') {
+                    throw new NoTableError(e)
+                } else {
+                    debugger;
+                    throw e;
+                }
             } finally {
                 connection.end()
             }
