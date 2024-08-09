@@ -59,9 +59,16 @@ export function generateForDays<T>(searchPastNDays, generator: ((name: TableName
 
 let locked = false;
 
+
+let lastCheck: string
+
 export async function ensureTables(pool: ExtendedPool, postfix: TableNames) {
+
     while (locked) {
         await new Promise(res => setTimeout(res, 200))
+    }
+    if (lastCheck === postfix.log) {
+        return
     }
     locked = true
     console.log("locked")
@@ -117,6 +124,7 @@ CREATE PROCEDURE insert_return_log (ts DATETIME,severity TINYTEXT,app TINYTEXT,m
         await createLogAttributesTable(pool, tableSet, postfix)
 
     } finally {
+        lastCheck = postfix.log
         locked = false
         console.log("unset lock")
     }
@@ -126,7 +134,6 @@ CREATE PROCEDURE insert_return_log (ts DATETIME,severity TINYTEXT,app TINYTEXT,m
 
 async function createLogAttributesTable(pool: ExtendedPool, tableSet: Record<string, string>, postfix: TableNames) {
     if (tableSet[postfix.logAttr] === undefined) {
-        debugger
         try {
             await pool.queryReplaced(postfix, `
         CREATE TABLE LOG_ATTRIBUTES_TABLE (

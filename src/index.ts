@@ -1,5 +1,5 @@
 import { IncomingMessage, ServerResponse, createServer } from 'http';
-import { insert, insertChecked } from './routes/insert';
+import { insert, insertAccess, insertChecked } from './routes/insert';
 import { getLogs } from './routes/get-logs';
 import { distinctAttribute } from './routes/distinct-attribute';
 import { ResponseCodeError } from './util/response-code-error';
@@ -19,6 +19,7 @@ const pathsFunctions: Record<string, (url: URL, req: IncomingMessage, res: Serve
     "/logs": getLogs,
     "/logs.php": getLogs,
     "/unique-attribute": distinctAttribute,
+    "/iplog": insertAccess,
     "/insert": insert,
     "/index.php": insert,
     "/watched_vid.php": watchedVideos,

@@ -8,7 +8,7 @@
     "importsNotUsedAsValues": "error",
     "ignoreDeprecations": "5.0",
     "strictNullChecks": true,
-    "target": "es6",
+    "target": "ES2020",
     "typeRoots": [
       "node_modules/@types",
       "customTypes/*"

@@ -48,19 +48,25 @@ export async function grafanaMetrics(url: URL, req: IncomingMessage, res: Server
     sendBody(res, JSON.stringify([{
         value: "Logs",
         payloads: metrics
-    }]))
+    }, {
+        value: "Access",
+        payloads: []
+    }] satisfies Array<{ value: Target, payloads: Array<unknown> }>))
 
 }
+type Target = "Logs" | "Access";
+
 interface QueryRequest {
     range: {
         from: string,
         to: string
     }
     targets: Array<{
-        target: string,
+        target: Target,
         payload: Record<string, string>
     }>
 }
+
 export async function grafanaQuery(url: URL, req: IncomingMessage, res: ServerResponse) {
     const body = await readBody(req)
     const queryData = JSON.parse(body.toString()) as QueryRequest
@@ -72,7 +78,7 @@ export async function grafanaQuery(url: URL, req: IncomingMessage, res: ServerRe
     const end = moment(new Date(queryData.range.to))
     tableDates.push(start)
     let iterate = start.clone().add(1, "days")
-    while (iterate < end) {
+    while (iterate <= end) {
         tableDates.push(iterate)
         iterate = iterate.clone().add(1, "days")
     }
@@ -83,25 +89,41 @@ export async function grafanaQuery(url: URL, req: IncomingMessage, res: ServerRe
             const connection = await pool.getConnection()
             extendWithReplacement(connection)
             try {
-                let sql = `SELECT * FROM ${LOG_TABLE} WHERE timestamp > ? AND timestamp < ?`
-                const params: Array<string | Array<string>> = [convertToMariaDBDateTime(queryData.range.from), convertToMariaDBDateTime(queryData.range.to)]
-                if (target.payload.Severity) {
-                    sql += " AND Severity IN (?)"
-                    if (target.payload.Severity === "ERROR") {
-                        params.push(["ERROR"])
-                    } else if (target.payload.Severity === "WARNING") {
-                        params.push(["ERROR", "WARN", "WARNING"])
-                    } else {
-                        debugger
+
+                if (target.target === "Logs") {
+                    let sql = `SELECT * FROM ${LOG_TABLE} WHERE timestamp > ? AND timestamp < ?`
+                    const params: Array<string | Array<string>> = [convertToMariaDBDateTime(queryData.range.from), convertToMariaDBDateTime(queryData.range.to)]
+                    if (target.payload.Severity) {
+                        sql += " AND Severity IN (?)"
+                        if (target.payload.Severity === "ERROR") {
+                            params.push(["ERROR"])
+                        } else if (target.payload.Severity === "WARNING") {
+                            params.push(["ERROR", "WARN", "WARNING"])
+                        } else {
+                            debugger
+                        }
+
                     }
+                    const result = await connection.queryReplaced<Array<LogData>>(tables, sql, params)
+                    for (const log of result) {
+                        log.chunk = tables.log
+                    }
+                    await loadAttributes(pool, result, tables)
+                    return result
+                } else if (target.target == "Access") {
+                    let sql = `SELECT * FROM ${LOG_TABLE} WHERE timestamp > ? AND timestamp < ? AND message='access' AND severity='INFO'`
+                    const params: Array<string | Array<string>> = [convertToMariaDBDateTime(queryData.range.from), convertToMariaDBDateTime(queryData.range.to)]
 
+                    const result = await connection.queryReplaced<Array<LogData>>(tables, sql, params)
+
+                    await loadAttributes(pool, result, tables)
+                    for (const log of result) {
+                        log.chunk = tables.log
+                    }
+                    return result
+                } else {
+                    throw new Error("invalid target type")
                 }
-
-
-
-                const result = await connection.queryReplaced<Array<LogData>>(tables, sql, params)
-                await loadAttributes(pool, result, tables)
-                return result
             } catch (e) {
                 if (e instanceof NoDataError) {
                     throw e

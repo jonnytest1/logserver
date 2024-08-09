@@ -30,7 +30,7 @@ function evaluateParams(headers: Headers) {
     if (headers.filters) {
         const filterList = JSON.parse(headers.filters) as Array<string>
         for (const filter of filterList) {
-            const filterParts = filter.match(/^(?<field>[a-zA-Z]*?)(?<operator>[=><]|!=|\*=)(?<value>.+)$/)
+            const filterParts = filter.match(/^(?<field>[a-zA-Z_]*?)(?<operator>[=><]|!=|\*=)(?<value>.+)$/)
             if (!filterParts?.groups) {
                 throw new Error("couldnt match filter")
             }

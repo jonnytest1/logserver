@@ -15,6 +15,9 @@ export async function loadAttributes(pool: ExtendedPool, logs: Array<LogData>, k
     for (const log of logs) {
         attributeParams.push(log.index)
         resultMap[log.index] = log
+
+        log.chunk = keys.log
+
     }
 
 

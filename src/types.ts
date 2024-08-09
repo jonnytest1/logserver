@@ -2,7 +2,7 @@ export type LogData = {
     index: number
     timestamp: Date
     ip: string
-    Severity: string
+    Severity: "ERROR" | "INFO" | "WARN" | "DEBUG"
     message: string
     application: string
 

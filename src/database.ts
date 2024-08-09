@@ -8,7 +8,7 @@ function createDbPool(database: string) {
         user: environment.DB_USER,
         password: environment.DB_PASSWORD,
         database,
-        connectionLimit: 100
+        connectionLimit: 3
     })
 }
 
